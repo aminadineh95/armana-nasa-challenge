@@ -1,5 +1,5 @@
  /* --------------------------------------------------
-  * © Copyright 2025 - AIvent by Designesia
+  * © Copyright 2025 - Armana by Amin Adineh by Designesia
   * --------------------------------------------------*/
 (function($) {
 	'use strict';
@@ -630,18 +630,18 @@
      }
 
      /* Lenis begin */
-     const lenis = new Lenis()
+     // const lenis = new Lenis()
 
-     lenis.on('scroll', (e) => {
-       console.log(e)
-     })
+     // lenis.on('scroll', (e) => {
+     //   console.log(e)
+     // })
 
-     function raf(time) {
-       lenis.raf(time)
-       requestAnimationFrame(raf)
-     }
+     // function raf(time) {
+     //   lenis.raf(time)
+     //   requestAnimationFrame(raf)
+     // }
 
-     requestAnimationFrame(raf)
+     // requestAnimationFrame(raf)
      /* Lenis end */
      
      /* --------------------------------------------------
@@ -1384,11 +1384,11 @@
            return $state;
          };
 
-        skrollr.init();
-        var s = skrollr.init();
-        if (s.isMobile()) {
-            s.destroy();
-        }        
+        // skrollr.init();
+        // var s = skrollr.init();
+        // if (s.isMobile()) {
+        //     s.destroy();
+        // }        
          
          // --------------------------------------------------
          // navigation for mobile
