@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="author" content="Amin Adineh">
+    <meta name="copyright" content="Copyright © 2025 Amin Adineh. All rights reserved.">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exoplanet Hunter - NASA Space Apps 2025</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/FontLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/geometries/TextGeometry.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #000000;
+            color: #E5E7EB;
+        }
+        #solar-system {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            cursor: grab;
+        }
+        #solar-system:active {
+             cursor: grabbing;
+        }
+        .futuristic-panel {
+            background-color: rgba(17, 24, 39, 0.7);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(55, 65, 81, 0.5);
+        }
+        .btn {
+            background-color: #1D4ED8;
+            color: white;
+            transition: background-color 0.3s;
+            border-radius: 0.5rem;
+            padding: 0.5rem 1rem;
+            font-weight: 500;
+            border: 1px solid #2563EB;
+             cursor: pointer;
+        }
+        .btn:hover {
+            background-color: #2563EB;
+        }
+        .btn-secondary {
+             background-color: rgba(31, 41, 55, 0.9);
+             border: 1px solid #4B5563;
+        }
+        .btn-secondary:hover {
+            background-color: #374151;
+        }
+        .input-field {
+            background-color: rgba(31, 41, 55, 0.9);
+            border: 1px solid #4B5563;
+            color: #F9FAFB;
+            border-radius: 0.5rem;
+        }
+        .list-item {
+            cursor: pointer;
+            transition: background-color 0.2s;
+            color: #D1D5DB;
+            font-weight: 500;
+            border-bottom: 1px solid #374151;
+        }
+        .list-item:hover {
+            background-color: rgba(55, 65, 81, 0.5);
+        }
+        .zoom-controls {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .zoom-btn {
+            width: 40px;
+            height: 40px;
+            background-color: rgba(17, 24, 39, 0.5);
+            border: 1px solid rgba(55, 65, 81, 0.8);
+            color: white;
+            border-radius: 50%;
+            font-size: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .zoom-btn:hover {
+            background-color: rgba(55, 65, 81, 0.7);
+        }
+        #analysis-modal {
+            background-color: rgba(10, 10, 20, 0.7);
+            backdrop-filter: blur(10px);
+        }
+        .accordion-header {
+            cursor: pointer;
+            padding: 1rem;
+            background-color: rgba(31, 41, 55, 0.7);
+            border-radius: 0.5rem;
+            transition: background-color 0.3s;
+        }
+        .accordion-header:hover {
+            background-color: rgba(55, 65, 81, 0.8);
+        }
+        .accordion-content {
+            display: none;
+            padding: 1rem;
+            background-color: rgba(17, 24, 39, 0.5);
+            border-radius: 0 0 0.5rem 0.5rem;
+        }
+        aside {
+            cursor: default;
+        }
+    </style>
+</head>
+<body class="overflow-hidden">
+    <div id="app" class="flex h-screen flex-col md:flex-row">
+        <!-- Sidebar -->
+        <aside class="w-full md:w-1/3 lg:w-1/4 p-4 overflow-y-auto futuristic-panel flex flex-col h-screen z-10">
+            <header class="mb-6 text-center">
+                <h1 class="text-3xl font-bold text-white">Exoplanet Hunter</h1>
+                <p class="text-sm text-blue-300">A World Away: Hunting for Exoplanets with AI</p>
+            </header>
+            
+            <div class="space-y-4">
+                 <!-- Solar System Accordion -->
+                <div class="accordion-item">
+                    <div class="accordion-header flex justify-between items-center">
+                        <h2 class="text-lg font-semibold text-gray-200">Our Solar System</h2>
+                        <span class="transform transition-transform duration-300">&#9662;</span>
+                    </div>
+                    <div class="accordion-content">
+                        <div class="mb-4">
+                            <label for="search-input" class="block text-sm font-medium text-gray-400 mb-1">Search Planet</label>
+                            <div class="flex gap-2">
+                                <input type="text" id="search-input" class="input-field w-full px-3 py-2" placeholder="e.g., Mars">
+                                <button id="search-btn" class="btn">Search</button>
+                            </div>
+                        </div>
+                         <div id="planet-list" class="space-y-1"></div>
+                    </div>
+                </div>
+
+                <!-- Exoplanet Systems Accordion -->
+                <div class="accordion-item">
+                    <div class="accordion-header flex justify-between items-center">
+                        <h2 class="text-lg font-semibold text-gray-200">Exoplanet Systems</h2>
+                        <span class="transform transition-transform duration-300">&#9662;</span>
+                    </div>
+                    <div class="accordion-content">
+                        <div class="mb-4">
+                            <label for="filter-select" class="block text-sm font-medium text-gray-400 mb-1">Filter by Class</label>
+                            <select id="filter-select" class="input-field w-full px-3 py-2">
+                                <option value="all">All Classes</option>
+                                <option value="Terrestrial">Terrestrial</option>
+                                <option value="Super-Earth">Super-Earth</option>
+                                <option value="Gas Giant">Gas Giant</option>
+                            </select>
+                        </div>
+                        <div id="exoplanet-list" class="space-y-1 max-h-60 overflow-y-auto"></div>
+                    </div>
+                </div>
+
+                <!-- Data Analysis Accordion -->
+                <div class="accordion-item">
+                    <div class="accordion-header flex justify-between items-center">
+                        <h2 class="text-lg font-semibold text-gray-200">AI Data Analysis</h2>
+                        <span class="transform transition-transform duration-300">&#9662;</span>
+                    </div>
+                    <div class="accordion-content">
+                        <p class="text-sm text-gray-400 mb-2">Load raw light curve data from NASA missions to detect new exoplanets.</p>
+                        <input type="file" id="data-upload" class="input-field w-full text-sm" />
+                        <button id="load-data-btn" class="btn w-full mt-2">Load & Process Data</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="info-panel" class="mt-6 bg-gray-900/50 p-4 rounded-lg min-h-[120px]">
+                 <div id="info-content">
+                    <h3 class="font-bold text-lg mb-2 text-blue-300">Object Information</h3>
+                    <p id="object-name" class="text-xl font-bold text-white">The Sun</p>
+                    <p id="object-description" class="text-gray-300 mt-2">The star at the center of our Solar System.</p>
+                 </div>
+                 <button id="analyze-data-btn" class="btn btn-secondary w-full mt-4 hidden">Analyze Light Curve</button>
+            </div>
+            
+            <footer class="mt-auto pt-4 text-center text-xs text-gray-500">
+                <p>Created by Amin Adineh.</p>
+                <p>© 2025 Amin Adineh. All rights reserved.</p>
+            </footer>
+        </aside>
+
+        <!-- Main content -->
+        <main class="flex-1 h-full w-full absolute top-0 left-0 md:relative">
+            <div id="solar-system"></div>
+            <div class="zoom-controls">
+                <button id="zoom-in" class="zoom-btn">+</button>
+                <button id="zoom-out" class="zoom-btn">-</button>
+            </div>
+        </main>
+        
+        <!-- Analysis Modal -->
+        <div id="analysis-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4">
+            <div class="futuristic-panel rounded-lg shadow-xl w-full max-w-4xl p-6 relative">
+                <button id="close-modal-btn" class="absolute top-4 right-4 text-gray-400 hover:text-white text-2xl font-bold">&times;</button>
+                <h2 class="text-2xl font-bold text-center mb-4 text-blue-300">AI Analysis: Light Curve Data</h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="md:col-span-2">
+                        <canvas id="lightcurve-chart"></canvas>
+                    </div>
+                    <div class="space-y-4">
+                        <h3 class="text-lg font-semibold text-gray-300">Derived Parameters</h3>
+                        <div>
+                            <p class="text-sm text-gray-400">Orbital Period (P)</p>
+                            <p id="param-period" class="text-xl font-bold text-white"></p>
+                        </div>
+                         <div>
+                            <p class="text-sm text-gray-400">Transit Depth (ΔF/F)</p>
+                            <p id="param-depth" class="text-xl font-bold text-white"></p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-400">Calculated Radius (Rₚ)</p>
+                            <p id="param-radius" class="text-xl font-bold text-white"></p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-400">AI Confidence</p>
+                            <p id="param-confidence" class="text-xl font-bold text-green-400"></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+    
+    <script>
+        let scene, camera, renderer, controls, lightCurveChart;
+        let solarSystemObjects = new THREE.Group();
+        let exoplanetSystemObjects = new THREE.Group();
+        const planets = [];
+        const clock = new THREE.Clock();
+        let focusedPlanet = null;
+        let currentSystem = null;
+
+        const planetData = [
+            { name: "Mercury", radius: 0.38, distance: 30, speed: 1.6, texture: 'https://www.solarsystemscope.com/textures/download/2k_mercury.jpg', description: "The smallest planet and nearest to the Sun." },
+            { name: "Venus", radius: 0.95, distance: 50, speed: 1.1, texture: 'https://www.solarsystemscope.com/textures/download/2k_venus_surface.jpg', description: "Venus has a thick, toxic atmosphere that traps heat." },
+            { name: "Earth", radius: 1, distance: 75, speed: 1, texture: 'https://i.imgur.com/vHqACa4.jpeg', description: "Our home planet, the only known to harbor life." },
+            { name: "Mars", radius: 0.53, distance: 100, speed: 0.8, texture: 'https://www.solarsystemscope.com/textures/download/2k_mars.jpg', description: "The 'Red Planet' is a cold, desert-like world." },
+            { name: "Jupiter", radius: 11.2, distance: 160, speed: 0.45, texture: 'https://www.solarsystemscope.com/textures/download/2k_jupiter.jpg', description: "The largest planet, a gas giant with a Great Red Spot." },
+            { name: "Saturn", radius: 9.45, distance: 220, speed: 0.32, texture: 'https://www.solarsystemscope.com/textures/download/2k_saturn.jpg', ringTexture: 'https://www.solarsystemscope.com/textures/download/2k_saturn_ring_alpha.png', description: "Known for its stunning and complex ring system." },
+            { name: "Uranus", radius: 4, distance: 280, speed: 0.22, texture: 'https://www.solarsystemscope.com/textures/download/2k_uranus.jpg', description: "An ice giant that rotates on its side." },
+            { name: "Neptune", radius: 3.88, distance: 340, speed: 0.18, texture: 'https://www.solarsystemscope.com/textures/download/2k_neptune.jpg', description: "A dark, cold world with supersonic winds." }
+        ];
+
+        const exoplanetData = [
+            { name: 'Kepler-186f', starRadius: 0.52, starType: 'M-dwarf', probability: 99.8, classification: 'Terrestrial', planets: [{ name: 'Kepler-186f', radius: 1.1, distance: 40, speed: 1.2, color: 0xff6347, period: 130 }] },
+            { name: 'TRAPPIST-1e', starRadius: 0.12, starType: 'M-dwarf', probability: 98.2, classification: 'Terrestrial', planets: [{ name: 'TRAPPIST-1e', radius: 0.9, distance: 25, speed: 1.8, color: 0xadd8e6, period: 6.1 }] },
+            { name: '55 Cancri e', starRadius: 0.94, starType: 'G-type', probability: 95.5, classification: 'Super-Earth', planets: [{ name: '55 Cancri e', radius: 1.9, distance: 15, speed: 2.5, color: 0xffffd9, period: 0.7}] },
+            { name: 'HD 189733b', starRadius: 0.76, starType: 'G-type', probability: 92.1, classification: 'Gas Giant', planets: [{ name: 'HD 189733b', radius: 13.4, distance: 35, speed: 1.9, color: 0x4169e1, period: 2.2 }] }
+        ];
+
+        function init3D() {
+            const container = document.getElementById('solar-system');
+            
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 5000);
+            camera.position.set(0, 150, 400);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            renderer.setClearColor(0x000000);
+            container.appendChild(renderer.domElement);
+            
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            
+            scene.add(new THREE.AmbientLight(0xffffff, 0.3));
+
+            // Starfield
+            const starGeometry = new THREE.BufferGeometry();
+            const starVertices = [];
+            for (let i = 0; i < 40000; i++) {
+                starVertices.push(THREE.MathUtils.randFloatSpread(4000), THREE.MathUtils.randFloatSpread(4000), THREE.MathUtils.randFloatSpread(4000));
+            }
+            starGeometry.setAttribute('position', new THREE.Float32BufferAttribute(starVertices, 3));
+            const starMaterial = new THREE.PointsMaterial({ color: 0xffffff, size: 0.7 });
+            const starField = new THREE.Points(starGeometry, starMaterial);
+            scene.add(starField);
+            
+            scene.add(solarSystemObjects);
+            scene.add(exoplanetSystemObjects);
+
+            loadSolarSystem();
+            populateExoplanetList();
+            setupEventListeners();
+            animate();
+        }
+        
+        function loadSolarSystem() {
+            clearScene(solarSystemObjects);
+            exoplanetSystemObjects.visible = false;
+            solarSystemObjects.visible = true;
+            document.getElementById('analyze-data-btn').classList.add('hidden');
+            document.getElementById('object-name').textContent = "The Sun";
+            document.getElementById('object-description').textContent = "The star at the center of our Solar System.";
+
+            const textureLoader = new THREE.TextureLoader();
+
+            // Sun
+            const sunGeometry = new THREE.SphereGeometry(15, 64, 64);
+            const sunMaterial = new THREE.MeshBasicMaterial({ 
+                map: textureLoader.load('https://i.imgur.com/Y36746W.jpeg'),
+                emissive: 0xffff00,
+                emissiveIntensity: 0.1
+             });
+            const sun = new THREE.Mesh(sunGeometry, sunMaterial);
+            solarSystemObjects.add(sun);
+            
+            const sunLight = new THREE.PointLight(0xffffff, 2.5, 4000);
+            solarSystemObjects.add(sunLight);
+
+            const fontLoader = new THREE.FontLoader();
+            fontLoader.load('https://cdn.jsdelivr.net/npm/three@0.128.0/examples/fonts/helvetiker_regular.typeface.json', (font) => {
+                planets.length = 0;
+                planetData.forEach((p_data) => {
+                    const planetGroup = new THREE.Group();
+                    solarSystemObjects.add(planetGroup);
+                    const planetGeometry = new THREE.SphereGeometry(p_data.radius, 32, 32);
+                    const planetMaterial = new THREE.MeshStandardMaterial({ map: textureLoader.load(p_data.texture) });
+                    const planetMesh = new THREE.Mesh(planetGeometry, planetMaterial);
+                    planetGroup.add(planetMesh);
+
+                    const orbitCurve = new THREE.EllipseCurve(0, 0, p_data.distance, p_data.distance * 0.95, 0, 2 * Math.PI, false, 0);
+                    const points = orbitCurve.getPoints(100);
+                    const orbitGeometry = new THREE.BufferGeometry().setFromPoints(points);
+                    const orbitMaterial = new THREE.LineBasicMaterial({ color: 0x374151 });
+                    const orbit = new THREE.Line(orbitGeometry, orbitMaterial);
+                    orbit.rotation.x = Math.PI / 2;
+                    solarSystemObjects.add(orbit);
+
+                    if (p_data.ringTexture) {
+                        const ringGeometry = new THREE.RingGeometry(p_data.radius * 1.2, p_data.radius * 2, 64);
+                        const ringMaterial = new THREE.MeshBasicMaterial({ map: textureLoader.load(p_data.ringTexture), side: THREE.DoubleSide, transparent: true, opacity: 0.8 });
+                        const ringMesh = new THREE.Mesh(ringGeometry, ringMaterial);
+                        ringMesh.rotation.x = Math.PI / 2;
+                        planetGroup.add(ringMesh);
+                    }
+                    
+                    const textGeometry = new THREE.TextGeometry(p_data.name, { font: font, size: 3, height: 0.1 });
+                    const textMaterial = new THREE.MeshBasicMaterial({ color: 0x90b8f3 });
+                    const textMesh = new THREE.Mesh(textGeometry, textMaterial);
+                    textMesh.position.y = p_data.radius + 4;
+                    planetGroup.add(textMesh);
+
+                    planets.push({ ...p_data, mesh: planetGroup, orbit: orbitCurve, label: textMesh });
+                });
+            });
+            populatePlanetList();
+        }
+
+        function loadExoplanetSystem(system) {
+            clearScene(exoplanetSystemObjects);
+            solarSystemObjects.visible = false;
+            exoplanetSystemObjects.visible = true;
+            currentSystem = system;
+            
+            const infoPanel = document.getElementById('info-panel');
+            infoPanel.querySelector('#object-name').textContent = system.name;
+            infoPanel.querySelector('#object-description').textContent = `An exoplanetary system hosted by a ${system.starType} star.`;
+            document.getElementById('analyze-data-btn').classList.remove('hidden');
+
+            const starGeometry = new THREE.SphereGeometry(10, 64, 64);
+            const starMaterial = new THREE.MeshBasicMaterial({ color: system.starType === 'M-dwarf' ? 0xffa07a : 0xfff4c1, emissive: system.starType === 'M-dwarf' ? 0xffa07a : 0xfff4c1, emissiveIntensity: 0.2});
+            const star = new THREE.Mesh(starGeometry, starMaterial);
+            exoplanetSystemObjects.add(star);
+            
+            const starLight = new THREE.PointLight(0xffffff, 2, 3000);
+            exoplanetSystemObjects.add(starLight);
+
+            system.planets.forEach(p_data => {
+                const planetGroup = new THREE.Group();
+                exoplanetSystemObjects.add(planetGroup);
+                const planetGeometry = new THREE.SphereGeometry(p_data.radius, 32, 32);
+                const planetMaterial = new THREE.MeshStandardMaterial({ color: p_data.color });
+                const planetMesh = new THREE.Mesh(planetGeometry, planetMaterial);
+                planetGroup.add(planetMesh);
+                const orbitCurve = new THREE.EllipseCurve(0, 0, p_data.distance, p_data.distance * 0.95, 0, 2 * Math.PI, false, 0);
+                const points = orbitCurve.getPoints(100);
+                const orbitGeometry = new THREE.BufferGeometry().setFromPoints(points);
+                const orbitMaterial = new THREE.LineBasicMaterial({ color: 0x374151 });
+                const orbit = new THREE.Line(orbitGeometry, orbitMaterial);
+                orbit.rotation.x = Math.PI / 2;
+                exoplanetSystemObjects.add(orbit);
+                
+                p_data.mesh = planetGroup;
+                p_data.orbit = orbitCurve;
+            });
+
+            camera.position.set(0, 80, 150);
+            controls.target.set(0,0,0);
+        }
+        
+        function clearScene(group) {
+            while(group.children.length > 0){ 
+                const obj = group.children[0];
+                group.remove(obj);
+                if (obj.geometry) obj.geometry.dispose();
+                if (obj.material) {
+                    if (Array.isArray(obj.material)) {
+                        obj.material.forEach(material => material.dispose());
+                    } else {
+                        obj.material.dispose();
+                    }
+                }
+            }
+        }
+        
+        function populatePlanetList() {
+            const list = document.getElementById('planet-list');
+            list.innerHTML = '';
+            planetData.forEach((p_data, index) => {
+                const item = document.createElement('div');
+                item.className = 'p-2 rounded-md list-item';
+                item.textContent = p_data.name;
+                item.onclick = () => focusOnPlanet(index);
+                list.appendChild(item);
+            });
+        }
+        
+        function populateExoplanetList() {
+            const list = document.getElementById('exoplanet-list');
+            list.innerHTML = '';
+            const filterValue = document.getElementById('filter-select').value;
+
+            exoplanetData
+                .filter(p => filterValue === 'all' || p.classification === filterValue)
+                .forEach(p => {
+                    const item = document.createElement('div');
+                    item.className = 'p-3 rounded-md list-item flex justify-between items-center';
+                    item.innerHTML = `
+                        <div>
+                            <p class="font-bold text-white">${p.name}</p>
+                            <p class="text-xs text-gray-400">${p.classification}</p>
+                        </div>
+                        <p class="text-sm font-semibold text-green-400">${p.probability}%</p>
+                    `;
+                    item.onclick = () => loadExoplanetSystem(p);
+                    list.appendChild(item);
+                });
+        }
+
+        function focusOnPlanet(index) {
+            if (index === -1 || !planets[index]) return;
+            focusedPlanet = planets[index];
+            document.getElementById('analyze-data-btn').classList.add('hidden');
+            
+            document.getElementById('object-name').textContent = focusedPlanet.name;
+            document.getElementById('object-description').textContent = focusedPlanet.description;
+            
+             const planetPosition = new THREE.Vector3();
+             focusedPlanet.mesh.getWorldPosition(planetPosition);
+             const offset = new THREE.Vector3(focusedPlanet.radius * 2, focusedPlanet.radius * 2, focusedPlanet.radius * 5);
+             const targetPosition = planetPosition.clone().add(offset);
+
+             const startPosition = camera.position.clone();
+             const startTarget = controls.target.clone();
+             let t = 0;
+             const duration = 1.2;
+             function animateFocus() {
+                 t += clock.getDelta() / duration;
+                 if (t > 1) t = 1;
+                 const easedT = 1 - Math.pow(1 - t, 3);
+                 camera.position.lerpVectors(startPosition, targetPosition, easedT);
+                 controls.target.lerpVectors(startTarget, planetPosition, easedT);
+                 if (t < 1) requestAnimationFrame(animateFocus);
+                 else {
+                     controls.addEventListener('start', () => {
+                        focusedPlanet = null;
+                        controls.removeEventListener('start', this);
+                     });
+                 }
+             }
+             animateFocus();
+        }
+        
+        function analyzeLightCurve(system) {
+            const modal = document.getElementById('analysis-modal');
+            modal.style.display = 'flex';
+            
+            const planet = system.planets[0];
+            const transitDepth = Math.pow(planet.radius * 0.1 / system.starRadius, 2);
+            const lightCurveData = generateMockLightCurve(planet.period, transitDepth);
+            
+            document.getElementById('param-period').textContent = `${planet.period.toFixed(2)} days`;
+            document.getElementById('param-depth').textContent = `${(transitDepth * 100).toFixed(4)} %`;
+            document.getElementById('param-radius').textContent = `${(planet.radius).toFixed(2)} Earth Radii`;
+            document.getElementById('param-confidence').textContent = `${system.probability}%`;
+
+            renderLightCurveChart(lightCurveData);
+        }
+        
+        function generateMockLightCurve(period, depth) {
+            const data = [];
+            const numPoints = 500;
+            const transitDuration = period * 0.05; 
+            for (let i = 0; i < numPoints; i++) {
+                const time = (i / numPoints) * period * 2;
+                let flux = 1.0 + (Math.random() - 0.5) * 0.0005;
+                
+                const timeInPeriod = time % period;
+                if (timeInPeriod > (period / 2 - transitDuration / 2) && timeInPeriod < (period / 2 + transitDuration / 2)) {
+                    flux -= depth;
+                }
+                
+                data.push({x: time, y: flux});
+            }
+            return data;
+        }
+
+        function renderLightCurveChart(data) {
+            const ctx = document.getElementById('lightcurve-chart').getContext('2d');
+            if(lightCurveChart) {
+                lightCurveChart.destroy();
+            }
+            lightCurveChart = new Chart(ctx, {
+                type: 'scatter',
+                data: {
+                    datasets: [{
+                        label: 'Normalized Stellar Flux',
+                        data: data,
+                        backgroundColor: 'rgba(59, 130, 246, 0.5)',
+                        borderColor: '#3B82F6',
+                        borderWidth: 1,
+                        pointRadius: 2,
+                        showLine: true
+                    }]
+                },
+                options: {
+                    scales: {
+                        x: { title: { display: true, text: 'Time (Days)', color: '#9CA3AF' }, ticks: { color: '#9CA3AF' }, grid: { color: '#374151' } },
+                        y: { title: { display: true, text: 'Relative Brightness', color: '#9CA3AF' }, ticks: { color: '#9CA3AF' }, grid: { color: '#374151' } }
+                    },
+                    plugins: { legend: { labels: { color: '#9CA3AF' } } }
+                }
+            });
+        }
+
+
+        function setupEventListeners() {
+            document.getElementById('search-btn').addEventListener('click', () => {
+                const query = document.getElementById('search-input').value.toLowerCase();
+                const index = planetData.findIndex(p => p.name.toLowerCase() === query);
+                if (index !== -1) focusOnPlanet(index);
+                else alert('Planet not found!');
+            });
+            
+            document.getElementById('zoom-in').addEventListener('click', () => { controls.dollyIn(1.2); controls.update(); });
+            document.getElementById('zoom-out').addEventListener('click', () => { controls.dollyOut(1.2); controls.update(); });
+            
+            document.querySelectorAll('.accordion-header').forEach(header => {
+                header.addEventListener('click', () => {
+                    const content = header.nextElementSibling;
+                    const arrow = header.querySelector('span');
+                    if (content.style.display === 'block') {
+                        content.style.display = 'none';
+                        arrow.style.transform = 'rotate(0deg)';
+                    } else {
+                        content.style.display = 'block';
+                        arrow.style.transform = 'rotate(-180deg)';
+                    }
+                });
+            });
+
+            document.getElementById('filter-select').addEventListener('change', populateExoplanetList);
+            
+            document.getElementById('analyze-data-btn').addEventListener('click', () => analyzeLightCurve(currentSystem));
+            document.getElementById('close-modal-btn').addEventListener('click', () => {
+                document.getElementById('analysis-modal').style.display = 'none';
+            });
+
+            document.getElementById('load-data-btn').addEventListener('click', () => {
+                const fileInput = document.getElementById('data-upload');
+                if (fileInput.files.length > 0) {
+                    alert(`Simulating analysis of ${fileInput.files[0].name}...`);
+                    // In a real application, you would send this file to a backend for processing.
+                } else {
+                    alert('Please select a data file to analyze.');
+                }
+            });
+
+
+            window.addEventListener('resize', () => {
+                const container = document.getElementById('solar-system');
+                if (container.clientWidth > 0 && container.clientHeight > 0) {
+                    camera.aspect = container.clientWidth / container.clientHeight;
+                    camera.updateProjectionMatrix();
+                    renderer.setSize(container.clientWidth, container.clientHeight);
+                }
+            }, false);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const delta = clock.getDelta();
+            
+            if (solarSystemObjects.visible) {
+                 planets.forEach(p => {
+                    if (p !== focusedPlanet) {
+                        const time = clock.elapsedTime * p.speed * 0.1;
+                        const point = p.orbit.getPoint(time % 1);
+                        p.mesh.position.set(point.x, 0, point.y);
+                        p.mesh.rotation.y += 0.05 * delta;
+                    }
+                    if (p.label) p.label.lookAt(camera.position);
+                });
+            }
+
+            if (exoplanetSystemObjects.visible && exoplanetSystemObjects.children.length > 1) {
+                exoplanetSystemObjects.children.forEach(obj => {
+                     if (obj.type === "Group") { // planet group
+                        const p_data = currentSystem.planets.find(p => p.mesh === obj);
+                        if (p_data) {
+                           const time = clock.elapsedTime * p_data.speed * 0.1;
+                           const point = p_data.orbit.getPoint(time % 1);
+                           obj.position.set(point.x, 0, point.y);
+                           obj.rotation.y += 0.05 * delta;
+                        }
+                    }
+                });
+            }
+            
+            controls.update();
+            renderer.render(scene, camera);
+        }
+        
+        window.onload = () => {
+            setTimeout(() => {
+                init3D();
+                 // Auto-open the first accordion
+                const firstAccordion = document.querySelector('.accordion-header');
+                if(firstAccordion) {
+                    firstAccordion.click();
+                }
+            }, 100);
+        };
+    </script>
+</body>
+</html>
